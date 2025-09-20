@@ -2,13 +2,13 @@
 
 ## Service Discovery and API Gateway Development
 
----
-
 ## Abstract
 
 This report presents the implementation and evaluation of a microservices architecture for WEB303 Practical 3, focusing on service discovery mechanisms and API gateway patterns. The project involved developing a distributed system comprising two independent microservices (Users and Products), an API Gateway for request orchestration, and Consul for service discovery. The implementation addresses critical challenges in microservices communication, service registration, and composite data aggregation while ensuring scalability and fault tolerance.
 
 **Keywords:** Microservices, Service Discovery, API Gateway, gRPC, Consul, Docker, Go
+
+**Github Repository Link**: https://github.com/Wangpos/WEB303_PRACTICAL_3.git
 
 ---
 
