@@ -1,65 +1,215 @@
-# Student Cafe Microservices Application
+# **WEB303 Microservices & Serverless Applications**
 
-## Architecture Overview
+## **Practical 4: Kubernetes Microservices with Kong Gateway**
 
-This project implements a microservices-based cafe ordering system using Go, React, Kong API Gateway, Consul for service discovery, and Kubernetes for orchestration. The system consists of:
+### **Academic Report**
 
-- **Frontend (React.js):** A single-page application providing the user interface for students to browse menu items and place orders.
-- **food-catalog-service (Go & Chi):** A microservice responsible for providing a list of available food items.
-- **order-service (Go & Chi):** A microservice for creating and managing food orders.
-- **Service Discovery (Consul):** Allows microservices to find and communicate with each other.
-- **API Gateway (Kong):** Single entry point for all external traffic with intelligent routing.
-- **Containerization & Orchestration (Docker & Kubernetes):** All components are containerized and deployed on a local Kubernetes cluster.
+---
 
-## User Flow
+**Student Name:** Tshering Wangpo Dorji 
+**Student ID:** 02230311
+**Course:** WEB303 - Microservices & Serverless Applications  
+**Semester:** Year 3, Semester I  
 
-1. Student's browser loads the React application
-2. React app makes API calls to Kong API Gateway
-3. Kong routes traffic to appropriate microservices:
-   - `/api/catalog` → `food-catalog-service`
-   - `/api/orders` → `order-service`
-4. The `order-service` communicates with `food-catalog-service` via Consul service discovery
-5. All components run as pods within a Kubernetes cluster
+---
 
-## Prerequisites
+## **Table of Contents**
 
-Ensure you have the following tools installed:
+1. [Executive Summary](#1-executive-summary)
+2. [Introduction](#2-introduction)
+3. [Learning Objectives](#3-learning-objectives)
+4. [System Architecture](#4-system-architecture)
+5. [Implementation Process](#5-implementation-process)
+6. [Technical Analysis](#6-technical-analysis)
+7. [Challenges and Solutions](#7-challenges-and-solutions)
+8. [Results and Testing](#8-results-and-testing)
+9. [Critical Evaluation](#9-critical-evaluation)
+10. [Conclusion](#10-conclusion)
+11. [References](#11-references)
+12. [Appendices](#12-appendices)
 
-- **Go** (version 1.18+)
-- **Node.js & npm** (for the React frontend)
-- **Docker** (for containerizing apps)
-- **Minikube** (for local Kubernetes cluster)
-- **kubectl** (Kubernetes command-line tool)
-- **Helm** (Kubernetes package manager)
+---
 
-## Setup Instructions
+## **1. Executive Summary**
 
-### 1. Start Minikube and Configure Docker
+This report documents the successful implementation of a production-grade microservices application using Kubernetes orchestration, Kong API Gateway, and Consul service discovery. The project involved developing a Student Cafe ordering system comprising three main components: a React.js frontend, two Go-based microservices (food-catalog-service and order-service), and supporting infrastructure services.
+
+The implementation demonstrates key microservices patterns including service discovery, API gateway routing, containerization, and container orchestration. The application was successfully deployed on a local Kubernetes cluster using Minikube, with all services communicating effectively through Kong's ingress controller.
+
+Key achievements include:
+
+- Successful deployment of a multi-service application using modern cloud-native technologies
+- Implementation of service discovery patterns using HashiCorp Consul
+- Configuration of Kong API Gateway for intelligent traffic routing
+- Containerization of all application components using Docker
+- Orchestration using Kubernetes with proper service mesh architecture
+
+---
+
+## **2. Introduction**
+
+### **2.1 Background**
+
+Microservices architecture has become the de facto standard for building scalable, maintainable applications in modern software development. This practical exercise focuses on implementing a complete microservices ecosystem using industry-standard tools and patterns that are widely adopted in production environments.
+
+### **2.2 Project Scope**
+
+The Student Cafe application serves as a practical demonstration of microservices principles, implementing a simple yet comprehensive ordering system where students can browse food items and place orders. The system showcases inter-service communication, service discovery, and API gateway patterns that are fundamental to microservices architecture.
+
+### **2.3 Technology Stack**
+
+- **Frontend:** React.js with TypeScript
+- **Backend Services:** Go with Chi router framework
+- **Service Discovery:** HashiCorp Consul
+- **API Gateway:** Kong
+- **Container Runtime:** Docker
+- **Orchestration:** Kubernetes (Minikube)
+- **Package Management:** Helm
+
+---
+
+## **3. Learning Objectives**
+
+### **3.1 Primary Learning Outcomes**
+
+1. **Microservices Design Patterns:** Understanding and implementing core microservices patterns including service discovery, API gateway, and inter-service communication
+2. **Container Orchestration:** Practical experience with Kubernetes deployment, service management, and ingress configuration
+3. **Production-Grade Tools:** Hands-on experience with enterprise-level tools used in real-world microservices deployments
+4. **DevOps Practices:** Integration of development and deployment workflows using containerization and orchestration
+
+### **3.2 Technical Skills Developed**
+
+- Go programming for microservices development
+- React.js frontend development with API integration
+- Docker containerization best practices
+- Kubernetes resource management and configuration
+- Service mesh configuration with Kong and Consul
+- Debugging and troubleshooting distributed systems
+
+---
+
+## **4. System Architecture**
+
+### **4.1 High-Level Architecture**
+
+The Student Cafe application follows a distributed microservices architecture with the following key components:
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   React Frontend │    │   Kong Gateway  │    │ Consul Discovery│
+│     (Port 80)   │◄──►│   (Port 80/443) │◄──►│   (Port 8500)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                    ┌───────────┼───────────┐
+                    ▼                       ▼
+        ┌─────────────────┐        ┌─────────────────┐
+        │Food Catalog Svc │        │  Order Service  │
+        │   (Port 8080)   │◄──────►│   (Port 8081)   │
+        └─────────────────┘        └─────────────────┘
+```
+
+### **4.2 Component Descriptions**
+
+#### **4.2.1 Frontend (cafe-ui)**
+
+- **Technology:** React.js with TypeScript
+- **Purpose:** User interface for browsing menu items and placing orders
+- **Port:** 80 (served via Nginx)
+- **Communication:** REST API calls to Kong Gateway
+
+#### **4.2.2 Food Catalog Service**
+
+- **Technology:** Go with Chi router
+- **Purpose:** Manages food item inventory and provides menu data
+- **Port:** 8080
+- **Endpoints:** `/items` (GET), `/health` (GET)
+
+#### **4.2.3 Order Service**
+
+- **Technology:** Go with Chi router
+- **Purpose:** Handles order creation and management
+- **Port:** 8081
+- **Endpoints:** `/orders` (POST), `/health` (GET)
+
+#### **4.2.4 Kong API Gateway**
+
+- **Purpose:** Single entry point for all external traffic with intelligent routing
+- **Features:** Path-based routing, load balancing, service discovery integration
+
+#### **4.2.5 Consul Service Discovery**
+
+- **Purpose:** Service registration and discovery for inter-service communication
+- **Features:** Health checking, service catalog, distributed configuration
+
+---
+
+## **5. Implementation Process**
+
+### **5.1 Environment Setup**
+
+The implementation began with setting up the local development environment and Kubernetes cluster:
+
+#### **5.1.1 Minikube Cluster Initialization**
 
 ```bash
-# Start your local Kubernetes cluster
 minikube start --cpus 4 --memory 4096
-
-# Point your local docker client to minikube's docker daemon
 eval $(minikube -p minikube docker-env)
 ```
 
-### 2. Create Kubernetes Namespace
+![alt text](<screenshots/Start your local Kubernetes cluster.png>)
+
+_Figure 5.1: Minikube cluster initialization showing successful startup and Docker environment configuration_
+
+### **5.2 Microservice Development**
+
+#### **5.2.1 Go Module Initialization**
+
+Before developing the microservices, proper Go module management was established:
+
+![alt text](<screenshots/Before building, initialize Go modules.png>)
+
+_Figure 5.2: Go module initialization for the food catalog service, establishing dependency management_
+
+#### **5.2.2 Order Service Development**
+
+The order service was developed with similar module initialization patterns:
+
+![alt text](<screenshots/Initialize Go modules for order service too.png>)
+
+_Figure 5.3: Order service Go module setup, ensuring consistent dependency management across services_
+
+### **5.3 Project Structure Organization**
+
+The project follows a well-organized structure separating concerns by service:
+
+![alt text](<screenshots/folder structure.png>)
+
+_Figure 5.4: Complete project structure showing separation of microservices, infrastructure configuration, and documentation_
+
+### **5.4 Infrastructure Deployment**
+
+#### **5.4.1 Kubernetes Namespace Creation**
 
 ```bash
 kubectl create namespace student-cafe
 ```
 
-### 3. Deploy Infrastructure Services
+![alt text](<screenshots/kubectl create namespace student-cafe.png>)
 
-**Deploy Consul:**
+_Figure 5.5: Kubernetes namespace creation providing isolated environment for the application_
+
+#### **5.4.2 Consul Service Discovery Deployment**
 
 ```bash
 helm repo add hashicorp https://helm.releases.hashicorp.com
 helm install consul hashicorp/consul --set global.name=consul --namespace student-cafe --set server.replicas=1 --set server.bootstrapExpect=1
 ```
 
-**Deploy Kong:**
+![alt text](<screenshots/Deploy Consul.png>)
+
+_Figure 5.6: Consul deployment using Helm, establishing service discovery infrastructure_
+
+#### **5.4.3 Kong API Gateway Deployment**
 
 ```bash
 helm repo add kong https://charts.konghq.com
@@ -67,44 +217,240 @@ helm repo update
 helm install kong kong/kong --namespace student-cafe
 ```
 
-### 4. Build Docker Images
+![alt text](<screenshots/Deploy Kong.png>)
 
-From the project root directory:
+_Figure 5.7: Kong API Gateway deployment, creating the central entry point for all external traffic_
+
+### **5.5 Application Containerization**
+
+#### **5.5.1 Food Catalog Service Containerization**
 
 ```bash
 docker build -t food-catalog-service:v1 ./food-catalog-service
+```
+
+![alt text](<screenshots/docker build -t food-catalog-service:v1 food-catalog-service.png>)
+
+_Figure 5.8: Food catalog service Docker image build process, demonstrating multi-stage build optimization_
+
+#### **5.5.2 Order Service Containerization**
+
+```bash
 docker build -t order-service:v1 ./order-service
+```
+
+![alt text](<screenshots/docker build -t order-service:v1 order-service.png>)
+
+_Figure 5.9: Order service containerization, following consistent Docker build patterns_
+
+#### **5.5.3 Frontend Containerization**
+
+```bash
 docker build -t cafe-ui:v1 ./cafe-ui
 ```
 
-### 5. Deploy Application Services
+![alt text](<screenshots/docker build -t cafe-ui:v1 cafe-ui.png>)
+
+_Figure 5.10: React frontend containerization using Nginx for production serving_
+
+### **5.6 Kubernetes Deployment**
+
+#### **5.6.1 Application Services Deployment**
 
 ```bash
 kubectl apply -f app-deployment.yaml
 ```
 
-### 6. Configure Kong API Gateway
+![alt text](<screenshots/kubectl apply -f app-deployment.yaml.png>)
+
+_Figure 5.11: Kubernetes deployment of all application services with proper configuration_
+
+#### **5.6.2 Kong Ingress Configuration**
 
 ```bash
 kubectl apply -f kong-ingress.yaml
 ```
 
-### 7. Access the Application
+![alt text](<screenshots/kubectl apply -f kong-ingress.yaml.png>)
 
-Get the external IP address for Kong:
+_Figure 5.12: Kong ingress configuration establishing routing rules for path-based traffic distribution_
+
+---
+
+## **6. Technical Analysis**
+
+### **6.1 Service Discovery Implementation**
+
+The implementation uses Consul for service discovery, allowing services to find and communicate with each other dynamically. Each Go service registers itself with Consul on startup, providing:
+
+- **Service Registration:** Automatic registration with health checks
+- **Service Discovery:** Dynamic lookup of service endpoints
+- **Health Monitoring:** Continuous health checking with automatic deregistration of unhealthy services
+
+### **6.2 API Gateway Pattern**
+
+Kong serves as the API gateway, providing:
+
+- **Unified Entry Point:** Single endpoint for all external traffic
+- **Path-based Routing:** Intelligent routing based on URL paths
+- **Load Balancing:** Distribution of traffic across service instances
+- **Security:** Centralized authentication and authorization point
+
+### **6.3 Container Orchestration**
+
+Kubernetes provides:
+
+- **Service Management:** Automatic service discovery and load balancing
+- **Resource Management:** CPU and memory allocation
+- **Scaling:** Horizontal and vertical scaling capabilities
+- **Health Management:** Automatic restart of failed containers
+
+### **6.4 Inter-Service Communication**
+
+The order service demonstrates inter-service communication by:
+
+- **Service Discovery:** Using Consul to locate the food catalog service
+- **HTTP Communication:** RESTful API calls between services
+- **Error Handling:** Graceful handling of service unavailability
+
+---
+
+## **7. Challenges and Solutions**
+
+### **7.1 Go Version Compatibility**
+
+**Challenge:** Docker build failures due to Go version mismatch between Dockerfile and go.mod files.
+
+**Solution:** Updated Dockerfiles to use Go 1.23-alpine and synchronized go.mod files to use compatible versions.
+
+### **7.2 Minikube Docker Environment**
+
+**Challenge:** Docker images not found during Kubernetes deployment.
+
+**Solution:** Configured Docker client to use Minikube's Docker daemon using `eval $(minikube -p minikube docker-env)`.
+
+### **7.3 Service Registration Issues**
+
+**Challenge:** Services failing to register with Consul due to hostname resolution issues.
+
+**Solution:** Updated service registration to use Kubernetes service endpoints instead of pod hostnames.
+
+### **7.4 Kong Ingress Configuration**
+
+**Challenge:** Application not accessible through Kong proxy due to ingress misconfiguration.
+
+**Solution:** Properly configured ingress class and path-based routing with correct service references.
+
+---
+
+## **8. Results and Testing**
+
+### **8.1 Application Access**
+
+The deployed application was successfully accessed through Kong's proxy service:
 
 ```bash
 minikube service -n student-cafe kong-kong-proxy --url
 ```
 
-Open the returned URL in your web browser to access the Student Cafe application.
+![alt text](<screenshots/minikube service -n student-cafe kong-kong-proxy --url.png>)
 
-## API Endpoints
+_Figure 8.1: Kong proxy service URL generation, providing external access to the application_
 
-- **GET /api/catalog/items** - Retrieve list of available food items
-- **POST /api/orders/orders** - Create a new food order
+### **8.2 User Interface Testing**
 
-## Project Structure
+#### **8.2.1 Initial Application State**
+
+![alt text](<screenshots/student cafe unordered image.png>)
+
+_Figure 8.2: Student Cafe application initial state showing menu items and empty cart_
+
+#### **8.2.2 Order Placement Functionality**
+
+![alt text](<screenshots/student cafe ordered items and placed ordered sucessfilly.png>)
+
+_Figure 8.3: Successful order placement demonstrating end-to-end functionality from frontend through API gateway to backend services_
+
+### **8.3 System Verification**
+
+The testing validated:
+
+1. **Frontend Functionality:** Menu display and cart management
+2. **API Gateway Routing:** Proper traffic routing to backend services
+3. **Service Discovery:** Successful inter-service communication
+4. **Order Processing:** Complete order workflow from cart to confirmation
+
+---
+
+## **9. Critical Evaluation**
+
+### **9.1 Strengths**
+
+1. **Modern Architecture:** Implementation follows current industry best practices for microservices
+2. **Scalability:** Architecture supports horizontal scaling of individual services
+3. **Maintainability:** Clear separation of concerns enables independent service development
+4. **Production Readiness:** Use of enterprise-grade tools (Kong, Consul, Kubernetes)
+
+### **9.2 Areas for Improvement**
+
+1. **Data Persistence:** Current implementation uses in-memory storage
+2. **Security:** Authentication and authorization not implemented
+3. **Monitoring:** Lacks comprehensive logging and monitoring solutions
+4. **Resilience:** Missing resilience patterns (circuit breaker, retry, timeout)
+
+### **9.3 Learning Outcomes Achievement**
+
+The practical successfully achieved all learning objectives:
+
+- ✅ **Microservices Design:** Implemented core patterns and practices
+- ✅ **Container Orchestration:** Demonstrated Kubernetes proficiency
+- ✅ **Production Tools:** Gained experience with enterprise-level tools
+- ✅ **DevOps Integration:** Integrated development and deployment workflows
+
+---
+
+## **10. Conclusion**
+
+This practical exercise provided comprehensive hands-on experience with modern microservices architecture and cloud-native technologies. The successful implementation of the Student Cafe application demonstrates the complexity and benefits of distributed systems architecture.
+
+### **10.1 Key Achievements**
+
+1. **Technical Proficiency:** Developed expertise in Go, React, Docker, and Kubernetes
+2. **Architectural Understanding:** Gained deep understanding of microservices patterns
+3. **Tool Mastery:** Acquired practical experience with production-grade tools
+4. **Problem-Solving Skills:** Successfully resolved various technical challenges
+
+### **10.2 Industry Relevance**
+
+The technologies and patterns implemented in this practical are directly applicable to modern software development environments. The experience gained provides a solid foundation for working with microservices in professional settings.
+
+### **10.3 Future Enhancements**
+
+Future iterations could include:
+
+- Implementation of resilience patterns (Part 2 of the practical)
+- Database integration for data persistence
+- Monitoring and observability tools
+- CI/CD pipeline implementation
+- Security enhancements
+
+---
+
+## **11. References**
+
+1. Fowler, M. (2014). _Microservices_. Retrieved from https://martinfowler.com/articles/microservices.html
+2. Kong Inc. (2024). _Kong Gateway Documentation_. Retrieved from https://docs.konghq.com/
+3. HashiCorp. (2024). _Consul Documentation_. Retrieved from https://www.consul.io/docs
+4. Kubernetes Documentation. (2024). Retrieved from https://kubernetes.io/docs/
+5. Docker Documentation. (2024). Retrieved from https://docs.docker.com/
+6. Go Programming Language. (2024). Retrieved from https://golang.org/doc/
+7. React Documentation. (2024). Retrieved from https://reactjs.org/docs/
+
+---
+
+## **12. Appendices**
+
+### **Appendix A: Complete File Structure**
 
 ```
 student-cafe/
@@ -126,53 +472,20 @@ student-cafe/
 │   └── package-lock.json
 ├── app-deployment.yaml
 ├── kong-ingress.yaml
-└── README.md
+├── deploy.sh
+├── cleanup.sh
+├── instruction.md
+├── README.md
+└── report.md
 ```
 
-## Development Commands
+### **Appendix B: Key Configuration Files**
 
-### View Running Pods
+Detailed configuration files including Kubernetes manifests, Docker configurations, and service implementations are maintained in the project repository for reference and reproducibility.
 
-```bash
-kubectl get pods -n student-cafe
-```
+### **Appendix C: Troubleshooting Guide**
 
-### View Services
+Common issues encountered during development and their solutions are documented for future reference and to assist other developers working with similar technology stacks.
 
-```bash
-kubectl get services -n student-cafe
-```
-
-### View Logs
-
-```bash
-kubectl logs -f <pod-name> -n student-cafe
-```
-
-### Check Ingress Status
-
-```bash
-kubectl get ingress -n student-cafe
-```
-
-## Troubleshooting
-
-- If pods are not starting, check image pull policy is set to `IfNotPresent`
-- Ensure minikube docker environment is configured with `eval $(minikube -p minikube docker-env)`
-- Verify all services are healthy with `kubectl get pods -n student-cafe`
-- Check service discovery is working by examining pod logs
-
-## Challenges and Solutions
-
-- **Service Discovery**: Implemented Consul for dynamic service discovery instead of hardcoding IP addresses
-- **API Gateway Routing**: Used Kong ingress with path-based routing to route traffic to appropriate microservices
-- **Container Orchestration**: Leveraged Kubernetes deployments and services for scalable container management
-- **Development Workflow**: Used minikube's docker environment to build images locally without pushing to remote registry
-
-## Future Enhancements
-
-- Implement resilience patterns (timeout, retry, circuit breaker)
-- Add monitoring and logging with Prometheus and Grafana
-- Implement database persistence
-- Add authentication and authorization
-- Create CI/CD pipeline for automated deployments
+---
+**End of Report**
