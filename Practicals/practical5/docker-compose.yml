@@ -73,6 +73,7 @@ services:
       - "8082:8082"
     depends_on:
       - menu-db
+      - consul
     environment:
       DATABASE_URL: "host=menu-db user=postgres password=postgres dbname=menu_db port=5432 sslmode=disable"
       PORT: "8082"
@@ -84,6 +85,7 @@ services:
       - "8081:8081"
     depends_on:
       - user-db
+      - consul
     environment:
       DATABASE_URL: "host=user-db user=postgres password=postgres dbname=user_db port=5432 sslmode=disable"
       PORT: "8081"
@@ -95,8 +97,7 @@ services:
       - "8083:8083"
     depends_on:
       - order-db
-      - user-service
-      - menu-service
+      - consul
     environment:
       DATABASE_URL: "host=order-db user=postgres password=postgres dbname=order_db port=5432 sslmode=disable"
       PORT: "8083"
@@ -108,9 +109,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - user-service
-      - menu-service
-      - order-service
+      - consul
 
 volumes:
   postgres_data:

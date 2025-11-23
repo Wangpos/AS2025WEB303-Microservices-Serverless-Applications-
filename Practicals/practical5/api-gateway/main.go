@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -9,33 +10,57 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	consulapi "github.com/hashicorp/consul/api"
 )
+
+func discoverService(serviceName string) (string, error) {
+	config := consulapi.DefaultConfig()
+	config.Address = "consul:8500"
+
+	consul, err := consulapi.NewClient(config)
+	if err != nil {
+		return "", err
+	}
+
+	services, _, err := consul.Health().Service(serviceName, "", true, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if len(services) == 0 {
+		return "", fmt.Errorf("no healthy instances of %s", serviceName)
+	}
+
+	service := services[0].Service
+	return fmt.Sprintf("http://%s:%d", service.Address, service.Port), nil
+}
+
+func proxyToService(serviceName, stripPrefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Discover service dynamically
+		targetURL, err := discoverService(serviceName)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusServiceUnavailable)
+			return
+		}
+
+		target, _ := url.Parse(targetURL)
+		proxy := httputil.NewSingleHostReverseProxy(target)
+
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")
+		log.Printf("Proxying to %s at %s", serviceName, targetURL)
+		proxy.ServeHTTP(w, r)
+	}
+}
 
 func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
-	// Route /api/users/* to user-service
-	r.HandleFunc("/api/users*", proxyTo("http://user-service:8081", "/users"))
-
-	// Route /api/menu/* to menu-service
-	r.HandleFunc("/api/menu*", proxyTo("http://menu-service:8082", "/menu"))
-
-	// Route /api/orders/* to order-service
-	r.HandleFunc("/api/orders*", proxyTo("http://order-service:8083", "/orders"))
+	r.HandleFunc("/api/users*", proxyToService("user-service", "/users"))
+	r.HandleFunc("/api/menu*", proxyToService("menu-service", "/menu"))
+	r.HandleFunc("/api/orders*", proxyToService("order-service", "/orders"))
 
 	log.Println("API Gateway starting on :8080")
 	http.ListenAndServe(":8080", r)
-}
-
-func proxyTo(targetURL, stripPrefix string) http.HandlerFunc {
-	target, _ := url.Parse(targetURL)
-	proxy := httputil.NewSingleHostReverseProxy(target)
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Strip /api prefix
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")
-		log.Printf("Proxying %s to %s%s", r.Method, targetURL, r.URL.Path)
-		proxy.ServeHTTP(w, r)
-	}
 }

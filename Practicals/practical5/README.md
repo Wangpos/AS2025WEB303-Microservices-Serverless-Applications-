@@ -51,21 +51,29 @@ This will start:
 curl -X POST http://localhost:8090/api/menu \
   -H "Content-Type: application/json" \
   -d '{"name": "Coffee", "description": "Hot coffee", "price": 2.50}'
-
+```
+![create a menu item](<screenshots /Create a menu item.png>)
+```bash
 # Create user
 curl -X POST http://localhost:8090/api/users \
   -H "Content-Type: application/json" \
   -d '{"name": "John Doe", "email": "john@example.com"}'
+```
+![create user](<screenshots /create a user.png>)
 
+```bash
 # Create order
 curl -X POST http://localhost:8090/api/orders \
   -H "Content-Type: application/json" \
   -d '{"user_id": 1, "items": [{"menu_item_id": 1, "quantity": 2}]}'
+```
+![create order](<screenshots /Create an order.png>)
 
+```bash
 # Get orders
 curl http://localhost:8090/api/orders
 ```
-
+![get all orders](<screenshots /get all orders.png>)
 ### Test the Microservices (via API Gateway)
 
 ```bash
@@ -73,20 +81,30 @@ curl http://localhost:8090/api/orders
 curl -X POST http://localhost:8080/api/users \
   -H "Content-Type: application/json" \
   -d '{"name": "Alice", "email": "alice@example.com"}'
+```
+![create user](<screenshots /create a user.png>)
 
+```bash
 # Create menu item
 curl -X POST http://localhost:8080/api/menu \
   -H "Content-Type: application/json" \
   -d '{"name": "Tea", "description": "Hot tea", "price": 1.50}'
+```
 
+```bash
 # Get menu
 curl http://localhost:8080/api/menu
-
+```
+![get menu ](<screenshots /Get menu items.png>)
+```bash
 # Create order (demonstrates inter-service communication)
 curl -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
   -d '{"user_id": 1, "items": [{"menu_item_id": 1, "quantity": 1}]}'
+```
 
+
+```bash
 # Get orders
 curl http://localhost:8080/api/orders
 ```

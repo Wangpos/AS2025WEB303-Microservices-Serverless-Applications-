@@ -1,15 +1,43 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"order-service/database"
 	"order-service/handlers"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	consulapi "github.com/hashicorp/consul/api"
 )
+
+func registerWithConsul(serviceName string, port int) error {
+	config := consulapi.DefaultConfig()
+	config.Address = "consul:8500"
+
+	consul, err := consulapi.NewClient(config)
+	if err != nil {
+		return err
+	}
+
+	hostname, _ := os.Hostname()
+
+	registration := &consulapi.AgentServiceRegistration{
+		ID:      fmt.Sprintf("%s-%s", serviceName, hostname),
+		Name:    serviceName,
+		Port:    port,
+		Address: hostname,
+		Check: &consulapi.AgentServiceCheck{
+			HTTP:     fmt.Sprintf("http://%s:%d/health", hostname, port),
+			Interval: "10s",
+			Timeout:  "3s",
+		},
+	}
+
+	return consul.Agent().ServiceRegister(registration)
+}
 
 func main() {
 	// Connect to dedicated order database
@@ -25,9 +53,19 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
+	// Add health endpoint
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	// Order endpoints
 	r.Post("/orders", handlers.CreateOrder)
 	r.Get("/orders", handlers.GetOrders)
+
+	// Register with Consul
+	if err := registerWithConsul("order-service", 8083); err != nil {
+		log.Printf("Failed to register with Consul: %v", err)
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
