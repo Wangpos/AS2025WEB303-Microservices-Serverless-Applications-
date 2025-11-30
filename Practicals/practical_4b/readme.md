@@ -1,0 +1,1 @@
+[Link to practical 4b](https://github.com/Wangpos/cicd-demo-sq)
